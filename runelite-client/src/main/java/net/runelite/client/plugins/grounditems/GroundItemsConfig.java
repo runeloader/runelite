@@ -358,4 +358,15 @@ public interface GroundItemsConfig extends Config
 	{
 		return false;
 	}
+
+	@ConfigItem(
+			keyName = "removeHiddenInMenu",
+			name = "Remove hidden ground items in menu",
+			description = "Remove ground items menu entries if they're hidden",
+			position = 28
+	)
+	default boolean removeHiddenInMenu()
+	{
+		return false;
+	}
 }

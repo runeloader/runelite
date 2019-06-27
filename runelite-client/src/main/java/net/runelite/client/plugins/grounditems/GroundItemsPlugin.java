@@ -293,7 +293,7 @@ public class GroundItemsPlugin extends Plugin
 	@Subscribe
 	public void onClientTick(ClientTick event)
 	{
-		if (!config.collapseEntries())
+		if (!config.collapseEntries() && !config.removeHiddenInMenu())
 		{
 			return;
 		}
@@ -308,16 +308,31 @@ public class GroundItemsPlugin extends Plugin
 
 			int menuType = menuEntry.getType();
 			if (menuType == FIRST_OPTION || menuType == SECOND_OPTION || menuType == THIRD_OPTION
-				|| menuType == FOURTH_OPTION || menuType == FIFTH_OPTION || menuType == EXAMINE_ITEM)
+					|| menuType == FOURTH_OPTION || menuType == FIFTH_OPTION || menuType == EXAMINE_ITEM)
 			{
-				for (MenuEntryWithCount entryWCount : newEntries)
+				ItemComposition itemDef = client.getItemDefinition(menuEntry.getIdentifier());
+
+				if(config.removeHiddenInMenu())
 				{
-					if (entryWCount.getEntry().equals(menuEntry))
+
+					if (TRUE.equals(hiddenItems.getUnchecked(itemDef.getName())))
 					{
-						entryWCount.increment();
-						continue outer;
+						continue;
 					}
 				}
+
+				if(config.collapseEntries())
+				{
+					for (MenuEntryWithCount entryWCount : newEntries)
+					{
+						if (entryWCount.getEntry().equals(menuEntry))
+						{
+							entryWCount.increment();
+							continue outer;
+						}
+					}
+				}
+
 			}
 
 			newEntries.add(new MenuEntryWithCount(menuEntry));
