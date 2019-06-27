@@ -280,7 +280,8 @@ public class XpTrackerPlugin extends Plugin
 		overlayManager.removeIf(e -> e instanceof XpInfoBoxOverlay && ((XpInfoBoxOverlay) e).getSkill() == skill);
 	}
 	
-	boolean hasOverlay(Skill skill) {
+	boolean hasOverlay(Skill skill)
+	{
 		return overlayManager.hasOverlay(e -> e instanceof XpInfoBoxOverlay && ((XpInfoBoxOverlay) e).getSkill() == skill);
 	}
 
