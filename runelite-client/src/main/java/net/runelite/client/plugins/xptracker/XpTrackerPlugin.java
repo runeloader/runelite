@@ -26,29 +26,22 @@
 package net.runelite.client.plugins.xptracker;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
+
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Binder;
 import com.google.inject.Provides;
 import java.awt.image.BufferedImage;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.Actor;
-import net.runelite.api.Client;
-import net.runelite.api.Experience;
-import net.runelite.api.GameState;
-import net.runelite.api.NPC;
-import net.runelite.api.Player;
-import net.runelite.api.Skill;
-import net.runelite.api.VarPlayer;
-import net.runelite.api.WorldType;
-import net.runelite.api.events.ExperienceChanged;
-import net.runelite.api.events.GameStateChanged;
-import net.runelite.api.events.GameTick;
-import net.runelite.api.events.NpcDespawned;
+import net.runelite.api.*;
+import net.runelite.api.events.*;
+import net.runelite.api.widgets.WidgetID;
+import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.game.NPCManager;
@@ -61,6 +54,7 @@ import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.ImageUtil;
+import net.runelite.client.util.Text;
 import net.runelite.http.api.xp.XpClient;
 
 @PluginDescriptor(
@@ -113,7 +107,11 @@ public class XpTrackerPlugin extends Plugin
 	private final XpClient xpClient = new XpClient();
 	private final XpState xpState = new XpState();
 	private final XpPauseState xpPauseState = new XpPauseState();
-
+	
+	private static final String MENUOP_CANVAS_ADD = "Add To Canvas";
+	private static final String MENUOP_CANVAS_REMOVE = "Remove From Canvas";
+	
+	
 	@Provides
 	XpTrackerConfig provideConfig(ConfigManager configManager)
 	{
@@ -149,6 +147,54 @@ public class XpTrackerPlugin extends Plugin
 		overlayManager.removeIf(e -> e instanceof XpInfoBoxOverlay);
 		xpState.reset();
 		clientToolbar.removeNavigation(navButton);
+	}
+	
+	@Subscribe
+	public void onMenuEntryAdded(MenuEntryAdded event)
+	{
+		int widgetIndex = event.getActionParam0();
+		int widgetID = event.getActionParam1();
+		MenuEntry[] menuEntries = client.getMenuEntries();
+		if ((WidgetInfo.TO_GROUP(widgetID) == WidgetID.SKILLS_GROUP_ID && event.getOption().startsWith("View")))
+		{
+			String target = event.getOption().replace("View ", "").replace("Open ", "")
+					.replace("guide", "").trim();
+			String _skill = Text.removeTags(target).toUpperCase();
+			Skill skill = Skill.valueOf(_skill);
+			
+			menuEntries = Arrays.copyOf(menuEntries, menuEntries.length + 1);
+			
+			MenuEntry menuEntry = menuEntries[menuEntries.length - 1] = new MenuEntry();
+			menuEntry.setTarget(target);
+			menuEntry.setOption(hasOverlay(skill) ? MENUOP_CANVAS_REMOVE : MENUOP_CANVAS_ADD);
+			menuEntry.setParam0(widgetIndex);
+			menuEntry.setParam1(widgetID);
+			menuEntry.setIdentifier(event.getIdentifier());
+			menuEntry.setType(MenuAction.RUNELITE.getId());
+			
+			client.setMenuEntries(menuEntries);
+		}
+	}
+	
+	@Subscribe
+	private void onMenuOptionClicked(MenuOptionClicked ev)
+	{
+		if (ev.getMenuAction() != MenuAction.RUNELITE)
+		{
+			return;
+		}
+		
+		String _skill = Text.removeTags(ev.getMenuTarget()).toUpperCase();
+		Skill skill = Skill.valueOf(_skill);
+		switch (ev.getMenuOption())
+		{
+			case MENUOP_CANVAS_ADD:
+				this.addOverlay(skill);
+				break;
+			case MENUOP_CANVAS_REMOVE:
+				this.removeOverlay(skill);
+				break;
+		}
 	}
 
 	@Subscribe
@@ -232,6 +278,10 @@ public class XpTrackerPlugin extends Plugin
 	void removeOverlay(Skill skill)
 	{
 		overlayManager.removeIf(e -> e instanceof XpInfoBoxOverlay && ((XpInfoBoxOverlay) e).getSkill() == skill);
+	}
+	
+	boolean hasOverlay(Skill skill) {
+		return overlayManager.hasOverlay(e -> e instanceof XpInfoBoxOverlay && ((XpInfoBoxOverlay) e).getSkill() == skill);
 	}
 
 	/**
