@@ -216,6 +216,17 @@ public class OverlayManager
 
 		return removeIf;
 	}
+	
+	/**
+	 * Checks if an overlay exists
+	 *
+	 * @param filter the filter
+	 * @return true if any overlay matches filter
+	 */
+	public synchronized boolean hasOverlay(Predicate<Overlay> filter)
+	{
+		return overlays.stream().anyMatch(filter);
+	}
 
 	/**
 	 * Clear all overlays
