@@ -579,6 +579,13 @@ public class MenuEntrySwapperPlugin extends Plugin
 			{
 				swap("teleport", option, target, true);
 			}
+			if(config.swapBattlestaves())
+			{
+				if(target.contains("battlestaff"))
+				{
+					swap("use", option, target, true);
+				}
+			}
 		}
 		else if (config.swapBones() && option.equals("bury"))
 		{

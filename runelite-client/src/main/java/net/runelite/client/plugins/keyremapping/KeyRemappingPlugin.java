@@ -31,14 +31,13 @@ import javax.inject.Inject;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
-import net.runelite.api.Client;
-import net.runelite.api.GameState;
-import net.runelite.api.IconID;
-import net.runelite.api.VarClientInt;
-import net.runelite.api.VarClientStr;
-import net.runelite.api.Varbits;
+import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.*;
 import net.runelite.api.events.ScriptCallbackEvent;
+import net.runelite.api.events.WidgetHiddenChanged;
+import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.widgets.Widget;
+import net.runelite.api.widgets.WidgetID;
 import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
@@ -49,6 +48,7 @@ import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.JagexColors;
 import net.runelite.client.util.ColorUtil;
 
+@Slf4j
 @PluginDescriptor(
 	name = "Key Remapping",
 	description = "Allows use of WASD keys for camera movement with 'Press Enter to Chat', and remapping number keys to F-keys",
@@ -140,10 +140,15 @@ public class KeyRemappingPlugin extends Plugin
 		return isHidden(WidgetInfo.CHATBOX_MESSAGES) || isHidden(WidgetInfo.CHATBOX_TRANSPARENT_LINES);
 	}
 
+	boolean isBankOpen()
+	{
+		return client.getItemContainer(InventoryID.BANK) != null;
+	}
+
 	private boolean isHidden(WidgetInfo widgetInfo)
 	{
 		Widget w = client.getWidget(widgetInfo);
-		return w == null || w.isSelfHidden();
+		return w == null || (w.isSelfHidden());
 	}
 
 	@Subscribe

@@ -30,15 +30,19 @@ import java.awt.event.KeyEvent;
 import java.util.HashMap;
 import java.util.Map;
 import javax.inject.Inject;
+
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.VarClientStr;
+import net.runelite.api.widgets.Widget;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.Keybind;
 import net.runelite.client.config.ModifierlessKeybind;
 import net.runelite.client.input.KeyListener;
 import net.runelite.client.input.MouseAdapter;
 
+@Slf4j
 class KeyRemappingListener extends MouseAdapter implements KeyListener
 {
 	private static final Keybind ONE = new ModifierlessKeybind(KeyEvent.VK_1, 0);
@@ -53,6 +57,7 @@ class KeyRemappingListener extends MouseAdapter implements KeyListener
 	private static final Keybind ZERO = new ModifierlessKeybind(KeyEvent.VK_0, 0);
 	private static final Keybind MINUS = new ModifierlessKeybind(KeyEvent.VK_MINUS, 0);
 	private static final Keybind EQUALS = new ModifierlessKeybind(KeyEvent.VK_EQUALS, 0);
+	private static final Keybind SPACE = new ModifierlessKeybind(KeyEvent.VK_SPACE, 0);
 
 	@Inject
 	private KeyRemappingPlugin plugin;
@@ -104,6 +109,15 @@ class KeyRemappingListener extends MouseAdapter implements KeyListener
 				{
 					modified.put(e.getKeyCode(), KeyEvent.VK_RIGHT);
 					e.setKeyCode(KeyEvent.VK_RIGHT);
+				}
+			}
+
+			if(config.spaceRemap() && plugin.isBankOpen())
+			{
+				if(SPACE.matches(e))
+				{
+					modified.put(e.getKeyCode(), KeyEvent.VK_ESCAPE);
+					e.setKeyCode(KeyEvent.VK_ESCAPE);
 				}
 			}
 

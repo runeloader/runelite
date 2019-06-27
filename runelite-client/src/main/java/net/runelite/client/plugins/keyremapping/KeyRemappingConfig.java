@@ -98,4 +98,12 @@ public interface KeyRemappingConfig extends Config
 	{
 		return false;
 	}
+
+	@ConfigItem(
+			position = 7,
+			keyName = "spaceRemap",
+			name = "Remap Space to Escape",
+			description = "Remaps the space bar to the escape button when the bank interface is open"
+	)
+	default boolean spaceRemap() { return true; }
 }
