@@ -291,4 +291,11 @@ public interface MenuEntrySwapperConfig extends Config
 	{
 		return true;
 	}
+
+	@ConfigItem(
+			keyName = "swapBattlestaves",
+			name = "Battlestaves",
+			description = "Swaps Wield to Use on Battlestaves"
+	)
+	default boolean swapBattlestaves() { return true; }
 }
