@@ -63,10 +63,10 @@ public class SpriteManager
 	public BufferedImage getSprite(int archive, int file)
 	{
 		assert client.isClientThread();
-		if (client.getGameState().ordinal() < GameState.LOGIN_SCREEN.ordinal())
-		{
-			return null;
-		}
+		//if (client.getGameState().ordinal() < GameState.LOGIN_SCREEN.ordinal())
+		//{
+		//	return null;
+		//}
 
 		Long key = (long) archive << 32 | file;
 		BufferedImage cached = cache.getIfPresent(key);

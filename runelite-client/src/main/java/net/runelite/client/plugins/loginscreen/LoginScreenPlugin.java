@@ -26,6 +26,9 @@ package net.runelite.client.plugins.loginscreen;
 
 import com.google.common.base.Strings;
 import com.google.inject.Provides;
+
+import java.awt.AWTException;
+import java.awt.Robot;
 import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.UnsupportedFlavorException;
@@ -36,97 +39,188 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.events.GameStateChanged;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.events.SessionOpen;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.input.KeyListener;
 import net.runelite.client.input.KeyManager;
+import net.runelite.client.input.MouseManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.OSType;
+import net.runelite.client.util.WorldUtil;
+import net.runelite.http.api.worlds.World;
+import net.runelite.http.api.worlds.WorldClient;
+import net.runelite.http.api.worlds.WorldResult;
 
 @PluginDescriptor(
 	name = "Login Screen",
 	description = "Provides various enhancements for login screen"
 )
 @Slf4j
-public class LoginScreenPlugin extends Plugin implements KeyListener
-{
+public class LoginScreenPlugin extends Plugin implements KeyListener {
 	private static final int MAX_USERNAME_LENGTH = 254;
 	private static final int MAX_PASSWORD_LENGTH = 20;
 	private static final int MAX_PIN_LENGTH = 6;
-
+	
+	private QuickLoginProfile[] profiles = new QuickLoginProfile[3];
+	
 	@Inject
 	private Client client;
-
+	
 	@Inject
 	private LoginScreenConfig config;
-
+	
+	@Inject
+	private OverlayManager overlayManager;
+	
+	@Inject
+	private QuickLoginOverlay quickLoginOverlay;
+	
 	@Inject
 	private KeyManager keyManager;
-
+	
+	@Inject
+	private MouseManager mouseManager;
+	
+	private QuickLoginMouseListener quickLoginMouseListener;
+	
 	private String usernameCache;
-
+	
+	private WorldResult worldResult;
+	
+	@Inject
+	private Robot robot;
+	
 	@Override
-	protected void startUp() throws Exception
-	{
+	protected void startUp() throws Exception {
 		applyUsername();
+		overlayManager.add(quickLoginOverlay);
 		keyManager.registerKeyListener(this);
+		
+		this.worldResult = new WorldClient().lookupWorlds();
+		this.quickLoginMouseListener = new QuickLoginMouseListener(this, client, quickLoginOverlay);
+		
+		mouseManager.registerMouseListener(quickLoginMouseListener);
+		
 	}
-
+	
 	@Override
-	protected void shutDown() throws Exception
-	{
-		if (config.syncUsername())
-		{
+	protected void shutDown() throws Exception {
+		if (config.syncUsername()) {
 			client.getPreferences().setRememberedUsername(usernameCache);
 		}
-
+		
 		keyManager.unregisterKeyListener(this);
+		mouseManager.unregisterMouseListener(quickLoginMouseListener);
+		overlayManager.remove(quickLoginOverlay);
 	}
-
+	
 	@Provides
-	LoginScreenConfig getConfig(ConfigManager configManager)
-	{
+	LoginScreenConfig getConfig(ConfigManager configManager) {
 		return configManager.getConfig(LoginScreenConfig.class);
 	}
-
+	
 	@Subscribe
-	public void onGameStateChanged(GameStateChanged event)
-	{
-		if (!config.syncUsername())
-		{
+	public void onGameStateChanged(GameStateChanged event) {
+		if (!config.syncUsername()) {
 			return;
 		}
-
-		if (event.getGameState() == GameState.LOGIN_SCREEN)
-		{
+		
+		if (event.getGameState() == GameState.LOGIN_SCREEN) {
 			applyUsername();
-		}
-		else if (event.getGameState() == GameState.LOGGED_IN)
-		{
+		} else if (event.getGameState() == GameState.LOGGED_IN) {
 			String username = "";
-
-			if (client.getPreferences().getRememberedUsername() != null)
-			{
+			
+			if (client.getPreferences().getRememberedUsername() != null) {
 				username = client.getUsername();
 			}
-
-			if (config.username().equals(username))
-			{
+			
+			if (config.username().equals(username)) {
 				return;
 			}
-
+			
 			log.debug("Saving username: {}", username);
 			config.username(username);
 		}
 	}
-
+	
 	@Subscribe
-	public void onSessionOpen(SessionOpen event)
-	{
+	public void onSessionOpen(SessionOpen event) {
 		// configuation for the account is available now, so update the username
 		applyUsername();
+	}
+	
+	protected void setProfile(int index, String display, String username, String password, int world)
+	{
+		QuickLoginProfile profile = new QuickLoginProfile();
+		profile.setDisplay(display);
+		profile.setUsername(username);
+		profile.setPassword(password);
+		profile.setWorld(world);
+		this.profiles[index] = profile;
+	}
+	
+	protected void populateLoginFields(int index)
+	{
+		if(index < 0 || index > this.profiles.length)
+		{
+			return;
+		}
+		QuickLoginProfile profile = this.profiles[index];
+		if(profile == null)
+		{
+			return;
+		}
+		client.setUsername(profile.getUsername());
+		client.setPassword(profile.getPassword());
+		for(World world : worldResult.getWorlds()) {
+			log.info("{}", world);
+		}
+		
+		World world = worldResult.findWorld(profile.getWorld());
+		final net.runelite.api.World rsWorld = client.createWorld();
+		rsWorld.setActivity(world.getActivity());
+		rsWorld.setAddress(world.getAddress());
+		rsWorld.setId(world.getId());
+		rsWorld.setPlayerCount(world.getPlayers());
+		rsWorld.setLocation(world.getLocation());
+		rsWorld.setTypes(WorldUtil.toWorldTypes(world.getTypes()));
+		client.changeWorld(rsWorld);
+		
+		robot.keyPress(KeyEvent.VK_ENTER);
+		robot.keyRelease(KeyEvent.VK_ENTER);
+		robot.keyPress(KeyEvent.VK_ENTER);
+		robot.keyRelease(KeyEvent.VK_ENTER);
+		
+	}
+	
+	protected QuickLoginProfile getProfileAtSlot(int index)
+	{
+		if(index < 0 || index > this.profiles.length)
+		{
+			return null;
+		}
+		return this.profiles[index];
+	}
+	
+	public int getProfileCount()
+	{
+		return this.profiles.length;
+	}
+	
+	public int getActiveProfileCount()
+	{
+		for(int i = this.profiles.length - 1; i >= 0; i--)
+		{
+			if(this.profiles[i] != null)
+			{
+				return i + 1;
+			}
+		}
+		return 0;
 	}
 
 	private void applyUsername()

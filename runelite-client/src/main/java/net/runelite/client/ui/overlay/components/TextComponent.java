@@ -30,6 +30,8 @@ import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.util.regex.Pattern;
+
+import lombok.Getter;
 import lombok.Setter;
 import net.runelite.client.ui.overlay.RenderableEntity;
 
@@ -40,6 +42,7 @@ public class TextComponent implements RenderableEntity
 	private static final Pattern COL_TAG_PATTERN_W_LOOKAHEAD = Pattern.compile("(?=" + COL_TAG_REGEX + ")");
 	private static final Pattern COL_TAG_PATTERN = Pattern.compile(COL_TAG_REGEX);
 
+	@Getter
 	private String text;
 	private Point position = new Point();
 	private Color color = Color.WHITE;

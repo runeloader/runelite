@@ -50,4 +50,9 @@ public enum OverlayLayer
 	 * Render over the map, even when it's fullscreen
 	 */
 	ABOVE_MAP,
+	
+	/**
+	 * Render on login screen
+	 */
+	LOGIN_SCREEN
 }
