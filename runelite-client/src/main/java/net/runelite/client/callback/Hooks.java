@@ -307,6 +307,15 @@ public class Hooks implements Callbacks
 		{
 			log.warn("Error during overlay rendering", ex);
 		}
+		
+		try
+		{
+			renderer.render(graphics2d, OverlayLayer.LOGIN_SCREEN);
+		}
+		catch (Exception ex)
+		{
+			log.warn("Error during overlay rendering", ex);
+		}
 
 		notifier.processFlash(graphics2d);
 

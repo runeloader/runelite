@@ -37,6 +37,8 @@ import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.swing.SwingUtilities;
+
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.MenuAction;
@@ -56,6 +58,7 @@ import net.runelite.client.ui.JagexColors;
 import net.runelite.client.util.ColorUtil;
 
 @Singleton
+@Slf4j
 public class OverlayRenderer extends MouseAdapter implements KeyListener
 {
 	private static final int BORDER = 5;
@@ -147,24 +150,36 @@ public class OverlayRenderer extends MouseAdapter implements KeyListener
 
 	public void render(Graphics2D graphics, final OverlayLayer layer)
 	{
-		if (layer != OverlayLayer.ABOVE_MAP
+		if (layer != OverlayLayer.LOGIN_SCREEN &&
+				layer != OverlayLayer.ABOVE_MAP
 			&& client.getWidget(WidgetInfo.FULLSCREEN_MAP_ROOT) != null
 			&& !client.getWidget(WidgetInfo.FULLSCREEN_MAP_ROOT).isHidden())
 		{
 			return;
 		}
-
 		final List<Overlay> overlays = overlayManager.getLayer(layer);
 
 		if (overlays == null
 			|| overlays.isEmpty()
-			|| client.getGameState() != GameState.LOGGED_IN
+			|| layer != OverlayLayer.LOGIN_SCREEN
+			&& ( client.getGameState() != GameState.LOGGED_IN
 			|| client.getWidget(WidgetInfo.LOGIN_CLICK_TO_PLAY_SCREEN) != null
-			|| client.getViewportWidget() == null)
+			|| client.getViewportWidget() == null))
 		{
 			return;
 		}
-
+		
+		if(layer == OverlayLayer.LOGIN_SCREEN)
+		{
+			if(client.getGameState() == GameState.LOGGING_IN || client.getGameState() == GameState.LOGIN_SCREEN || client.getGameState() == GameState.LOGIN_SCREEN_AUTHENTICATOR)
+			{
+				for (Overlay overlay : overlays) {
+					safeRender(client, overlay, layer, graphics, new Point());
+				}
+			}
+			return;
+		}
+		
 		if (shouldInvalidateBounds())
 		{
 			snapCorners = buildSnapCorners();
